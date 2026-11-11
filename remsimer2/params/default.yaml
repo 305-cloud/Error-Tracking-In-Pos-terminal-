@@ -1,0 +1,125 @@
+# REMSIMER v2 default parameters.
+# Every leaf is {value, prov}. prov is a citation, or a tag:
+#   [E] estimate (must be sensitivity-tested)   [S] snippet-level source   [C] company claim
+# Following PaySim practice, parameter files are published instead of data.
+
+simulation:
+  start_date: {value: "2026-11-24", prov: "Chosen so a 7-day run crosses month-end (salary days)"}
+  days: {value: 2, prov: "Run length; raise for final experiments"}
+  daily_transactions: {value: 30000, prov: "Scaled-down volume; real NIBSS volumes are ~10^7/day"}
+
+demand:
+  route_mix:
+    # NIBSS 2024: NIP ~11.27bn vs POS ~1.45bn txns (NIP ~7.7x POS). Online card share [E].
+    value: {A_card_cashout: 0.11, B_transfer_cashout: 0.06, C_nip_transfer: 0.80, D_online_card: 0.03}
+    prov: "Ratio NIP:POS from NIBSS 2024 factsheet [S]; split of B/D [E]"
+  hourly_weights:
+    value: [0.4, 0.2, 0.15, 0.1, 0.15, 0.4, 1.0, 2.0, 3.5, 5.0, 6.0, 6.5, 7.0, 7.0, 6.5, 6.0, 6.0, 6.5, 6.5, 5.5, 4.5, 3.0, 1.8, 0.9]
+    prov: "[E] no Nigerian hourly curve found; daytime-heavy retail profile"
+  month_end_volume_multiplier: {value: 1.4, prov: "[E] salary days ~25th-1st"}
+  card_ticket_naira: {value: {median: 9000, sigma: 0.9, max: 300000}, prov: "[E] lognormal, mean ~N12-13.5k = NIBSS POS value/volume [S]"}
+  nip_ticket_naira: {value: {median: 25000, sigma: 1.6, max: 5000000}, prov: "[E] heavy tail, mean ~N90k (NIBSS value/volume [S])"}
+  online_ticket_naira: {value: {median: 15000, sigma: 1.1, max: 2000000}, prov: "[E]"}
+  # Customers mostly know their balance and KYC limit; only some attempts overshoot.
+  p_overdraw: {value: {A: 0.09, B: 0.004, C: 0.0008, D: 0.03}, prov: "[E] share of attempts above balance -> 51; tuned to NIBSS POS 13-15% / NIP ~0.7% bands [S]"}
+  p_over_tier_limit: {value: 0.002, prov: "[E] share of attempts above the KYC tier limit -> 61"}
+  daily_income_p: {value: 0.12, prov: "[E] chance a customer receives money on a normal day"}
+  salary_day_income_p: {value: 0.5, prov: "[E] chance on peak days (25th-1st)"}
+  income_naira: {value: {median: 40000, sigma: 1.0}, prov: "[E]"}
+  retry_probability: {value: 0.45, prov: "[E] customer retries after a failure"}
+  max_retries: {value: 2, prov: "[E]"}
+  on_us_share: {value: 0.12, prov: "[E] same-institution transfers that never reach NIBSS"}
+
+population:
+  customers: {value: 20000, prov: "Scaled population"}
+  agents: {value: 600, prov: "Scaled population"}
+  principals:
+    value: {MONIEPOINT: 0.45, OPAY: 0.30, PALMPAY: 0.25}
+    prov: "Moniepoint claims ~42%+ of POS volume [C]; OPay/PalmPay split [E]"
+  principal_processor:
+    value: {MONIEPOINT: "MONIEPOINT_SW", OPAY: "INTERSWITCH", PALMPAY: "UP"}
+    prov: "[E] Moniepoint holds a switching licence (2019); routing of OPay/PalmPay card traffic not confirmed"
+  gateway_processor:
+    value: {PAYSTACK: "INTERSWITCH", FLUTTERWAVE: "UP"}
+    prov: "[E] which processor acquires for each gateway was not confirmed"
+  gateway_share: {value: {PAYSTACK: 0.6, FLUTTERWAVE: 0.4}, prov: "[E]"}
+  principal_fi:
+    value: {MONIEPOINT: "MONIEPOINT_MFB", OPAY: "OPAY_MFB", PALMPAY: "PALMPAY_MFB"}
+    prov: "Principals hold national MFB licences (CBN, Jan 2026) [S]"
+  ptsa_share:
+    value: {NIBSS: 0.7, UPSL: 0.3}
+    prov: "[E] two licensed PTSAs (NIBSS 2011, UPSL Apr 2024)"
+  issuer_share:
+    value: {GTBANK: 0.14, ACCESS: 0.15, ZENITH: 0.13, UBA: 0.12, FIRSTBANK: 0.13, FIDELITY: 0.07, KUDA: 0.05, OPAY_MFB: 0.11, MONIEPOINT_MFB: 0.06, PALMPAY_MFB: 0.04}
+    prov: "[E] customer distribution across issuers"
+  scheme_share:
+    value: {VERVE: 0.55, MASTERCARD: 0.25, VISA: 0.17, AFRIGO: 0.03}
+    prov: "[E] Verve dominant domestically; AfriGo launched Jan 2023"
+  kyc_tier_share: {value: {1: 0.25, 2: 0.45, 3: 0.30}, prov: "[E]"}
+  balance_naira: {value: {median: 30000, sigma: 1.6}, prov: "[E] lognormal account balance"}
+
+regulation:
+  cashout_cap_customer_day: {value: 100000, prov: "CBN circular 17 Dec 2024"}
+  cashout_cap_agent_day: {value: 1200000, prov: "CBN circular 17 Dec 2024"}
+  cashout_cap_customer_week: {value: 500000, prov: "CBN circular 17 Dec 2024 (all channels; enforced at issuer)"}
+  geofence_radius_m: {value: 70, prov: "CBN 29 May 2026 circular, enforced 1 Aug 2026 (was 10 m, Aug 2025)"}
+  terminal_outside_fence_share: {value: 0.01, prov: "[E] share of transactions from terminals moved off their registered site"}
+  kyc_tier_txn_limit: {value: {1: 50000, 2: 200000, 3: 5000000}, prov: "Fintech-reported tables, sources conflict [S]"}
+  reversal_deadline_hours: {value: 48, prov: "CBN PSM/DIR/CON/CWO/07/127 (2020); press release says 72h"}
+
+timing:
+  # Caller timeouts in seconds. A hop that hears nothing within its timeout answers upstream itself.
+  timeouts_s:
+    value: {TERMINAL: 60, APP: 75, CHECKOUT: 90, GATEWAY: 60, PTSA: 50, SWITCH: 40, SCHEME: 30, SENDER_FI: 45, NIBSS: 30}
+    prov: "[E] nested so inner hops time out first"
+  base_latency_ms:
+    value: {TERMINAL: 1500, PTSA: 120, SWITCH: 150, SCHEME: 200, ISSUER: 600, GATEWAY: 250, SENDER_FI: 400, NIBSS: 300, BENEFICIARY_FI: 500, PRINCIPAL: 200}
+    prov: "[E] lognormal median per hop"
+  latency_sigma: {value: 0.5, prov: "[E] lognormal sigma"}
+  capacity_inflight:
+    value: {PTSA: 60, SWITCH: 40, SCHEME: 60, ISSUER: 12, GATEWAY: 30, SENDER_FI: 25, NIBSS: 120, BENEFICIARY_FI: 25, PRINCIPAL: 40}
+    prov: "[E] in-flight requests before latency rises (scaled to simulated volume)"
+  overload_alpha: {value: 3.0, prov: "[E] latency x (1 + alpha * (inflight/capacity)^2)"}
+  reversal_delay_s: {value: {median: 1800, sigma: 2.2}, prov: "[E] lognormal; tail crosses the 48h CBN window"}
+  tsq_delay_s: {value: {median: 120, sigma: 1.0}, prov: "[E] NIP status query after unknown outcome"}
+
+faults:
+  # Per-entity two-way Markov availability: time to failure ~ Exp(MTBF), repair ~ lognormal(MTTR median).
+  # A failure is DOWN with p_down, otherwise DEGRADED (latency x degraded_latency_x, error rate degraded_error_p).
+  # Availability A = MTBF / (MTBF + MTTR).
+  by_role:
+    value:
+      PTSA:           {mtbf_h: 400, mttr_median_min: 25, p_down: 0.4}
+      SWITCH:         {mtbf_h: 120, mttr_median_min: 30, p_down: 0.35}
+      SCHEME:         {mtbf_h: 800, mttr_median_min: 20, p_down: 0.3}
+      ISSUER:         {mtbf_h: 60,  mttr_median_min: 70, p_down: 0.5}
+      GATEWAY:        {mtbf_h: 300, mttr_median_min: 25, p_down: 0.3}
+      NIBSS:          {mtbf_h: 300, mttr_median_min: 40, p_down: 0.3}
+      SENDER_FI:      {mtbf_h: 180, mttr_median_min: 60, p_down: 0.5}
+      BENEFICIARY_FI: {mtbf_h: 180, mttr_median_min: 60, p_down: 0.5}
+      PRINCIPAL:      {mtbf_h: 200, mttr_median_min: 20, p_down: 0.3}
+    prov: "[E] Paystack status page: bank incidents 1-4h, NIBSS-wide outages a few per year [S]. No public MTBF/MTTR."
+  mttr_sigma: {value: 0.8, prov: "[E] lognormal repair times (DTIC)"}
+  degraded_latency_x: {value: 25.0, prov: "[E]"}
+  degraded_error_p: {value: 0.15, prov: "[E] share of requests a degraded entity answers with 96"}
+  peak_fault_multiplier: {value: 2.5, prov: "[E] x2-3 failure rate on month-end and December"}
+  terminal_network_loss_p: {value: 0.02, prov: "[E] GPRS/SIM loss per attempt; no data found"}
+  terminal_loss_after_debit_share: {value: 0.35, prov: "[E] share of network losses that happen after the issuer debited"}
+  lost_webhook_p: {value: 0.004, prov: "[E] gateway webhook lost: debited, merchant gives no value"}
+
+issuer_behaviour:
+  # Per-attempt business decline drivers (calibrated so POS card failure lands in the 13-15% NIBSS band [S]).
+  value:
+    p_expired_card: 0.004
+    p_invalid_card: 0.002
+    p_wrong_account_type: 0.02
+    p_pin_wrong: 0.035
+    p_fraud_block: 0.003
+    p_not_permitted: 0.005
+    p_do_not_honour: 0.012
+    p_otp_fail: 0.02
+    nip_p_not_permitted: 0.0005
+    nip_p_fraud: 0.0002
+    nip_p_invalid_account: 0.002
+    nip_p_dormant: 0.0005
+  prov: "[E] per-code shares; report calibration table"
