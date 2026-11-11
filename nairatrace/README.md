@@ -1,6 +1,8 @@
-# REMSIMER v2: Nigerian payment failure simulator
+# NairaTrace v2: Nigerian payment failure simulator
 
-A discrete-event simulator (SimPy) of four Nigerian payment routes, with injected faults, hidden ground truth and a fault localiser. It replaces v1's AND-gate rules and its unused MLPs trained on US data. The design follows the research report *REMSIMER Nigerian payment simulation redesign*.
+A discrete-event simulator (SimPy) of four Nigerian payment routes, with injected faults, hidden ground truth and a fault localiser. It replaces v1's AND-gate rules and its unused MLPs trained on US data. The design follows the project's research report on redesigning the Nigerian payment simulation.
+
+The name: NairaTrace traces where a naira payment stops, and why. The project was formerly called REMSIMER.
 
 ## What it simulates
 
@@ -45,9 +47,9 @@ Models may only read `observable/`. A test checks that no ground-truth column re
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -r requirements.txt
-.venv/bin/python -m remsimer2 simulate --days 2 --volume 15000 --out runs/demo
-.venv/bin/python -m remsimer2 validate --days 2 --volume 15000             # stylised facts vs NIBSS/CBN
-.venv/bin/python -m remsimer2 localise --days 3 --volume 20000 --scenario stress
+.venv/bin/python -m nairatrace simulate --days 2 --volume 15000 --out runs/demo
+.venv/bin/python -m nairatrace validate --days 2 --volume 15000             # stylised facts vs NIBSS/CBN
+.venv/bin/python -m nairatrace localise --days 3 --volume 20000 --scenario stress
 .venv/bin/python -m pytest tests
 ```
 

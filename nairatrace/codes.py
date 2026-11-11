@@ -1,4 +1,4 @@
-"""Response-code tables for REMSIMER v2.
+"""Response-code tables for NairaTrace v2.
 
 Two separate code spaces (see report, "Corrected response codes"):
 

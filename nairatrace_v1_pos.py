@@ -1,6 +1,6 @@
 """
 ╔══════════════════════════════════════════════════════════════════════╗
-║         REMSIMER — Six-Entity Neural Network State Machine           ║
+║         NairaTrace — Six-Entity Neural Network State Machine           ║
 ║         Development of an Error Tracking System for POS              ║
 ║                                                                      ║
 ║  Author   : Mosobalaje Muiz Ayomide  (CSC/2017/086)                 ║
@@ -70,7 +70,7 @@ ENTITIES = {
     5: {'id': '110', 'name': 'Issuer'},
 }
 
-# Response codes — matching the REMSIMER document exactly
+# Response codes — matching the NairaTrace document exactly
 RESPONSE_CODES = {
     'customer_fail':  '00',   # invalid card number
     'terminal_fail':  '28',   # cryptogram / expiry failure
@@ -257,7 +257,7 @@ class InputX:
             self.halt_cond = next(
                 (k for k, v in conditions.items() if v == 0), 'unknown'
             )
-            # Assign response code per REMSIMER document
+            # Assign response code per NairaTrace document
             if entity_idx == 0:
                 self.response_code = '00'
             elif entity_idx == 1:
@@ -530,7 +530,7 @@ class CardStateHistory:
 # ══════════════════════════════════════════════════════════════════════
 
 print("=" * 72)
-print("REMSIMER — Six-Entity Neural Network State Machine (POS)")
+print("NairaTrace — Six-Entity Neural Network State Machine (POS)")
 print("=" * 72)
 
 print(f"\n[1] Loading real data from {DATA_PATH}...")

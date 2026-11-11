@@ -1,13 +1,21 @@
-# REMSIMER — Six-Entity Neural Network State Machine
+# NairaTrace — Tracing Where Nigerian Payments Fail
 ### Development of an Error Tracking System for POS Systems
 
-> **"When a POS transaction fails, the customer is left in the dark. REMSIMER pinpoints the exact entity and exact condition that caused the halt."**
+*v1 (below): Six-Entity Neural Network State Machine*
+
+> **"When a POS transaction fails, the customer is left in the dark. NairaTrace pinpoints the exact entity and exact condition that caused the halt."**
+
+> **About the name.** NairaTrace traces where a naira payment stops in the Nigerian payment chain, and why. The project was first called REMSIMER; the code, notebooks and report files were renamed in November 2026.
+>
+> **Two versions live in this repo:**
+> - **v2, current:** [`nairatrace/`](nairatrace/README.md). A SimPy simulator of agent POS cash-outs (Moniepoint, OPay, PalmPay), NIP transfers and online card payments. It injects faults, keeps a hidden ground truth and trains a fault localiser.
+> - **v1, original final-year model:** `nairatrace_v1_pos.py`, `nairatrace_v1_online.py` and their notebooks, described below.
 
 ---
 
 ## Overview
 
-REMSIMER is a machine learning model that tracks the flow of a card transaction through six entities in a payment system and isolates the exact point of failure. It was developed as a final year project at Obafemi Awolowo University, Ile-Ife.
+NairaTrace is a machine learning model that tracks the flow of a card transaction through six entities in a payment system and isolates the exact point of failure. It was developed as a final year project at Obafemi Awolowo University, Ile-Ife.
 
 The model answers one question precisely:
 
@@ -31,7 +39,7 @@ When a transaction fails, existing systems return a generic decline code. The cu
 - The card network detecting a clone
 - The issuer declining for insufficient funds
 
-REMSIMER tracks the transaction through every entity and records the exact condition that caused the halt.
+NairaTrace tracks the transaction through every entity and records the exact condition that caused the halt.
 
 ---
 
@@ -161,10 +169,10 @@ The model is calibrated for the Nigerian payment ecosystem:
 
 ## Two Models
 
-### 1. POS Model (`remsimer_pos.py`)
+### 1. POS Model (`nairatrace_v1_pos.py`)
 Six-entity POS pipeline. Card physically present. ARQC cryptogram. PIN encryption.
 
-### 2. Online Payment Model (`remsimer_online.py`)
+### 2. Online Payment Model (`nairatrace_v1_online.py`)
 Three payment types — CNP (card-not-present), NIP (bank transfer), WALT (fintech wallet).
 Terminal replaced by Auth Layer (OTP + 3DS + device score).
 Payment Gateway added as a new entity (Paystack / Flutterwave).
@@ -174,15 +182,15 @@ Payment Gateway added as a new entity (Paystack / Flutterwave).
 ## Files
 
 ```
-REMSIMER/
+NairaTrace/
 │
-├── remsimer_pos.py              # POS model — full code
-├── remsimer_online.py           # Online payment model — CNP / NIP / WALT
+├── nairatrace_v1_pos.py              # POS model — full code
+├── nairatrace_v1_online.py           # Online payment model — CNP / NIP / WALT
 │
-├── REMSIMER_POS_colab.ipynb     # Colab notebook — POS model (copy-paste cells)
-├── REMSIMER_online_colab.ipynb  # Colab notebook — online model
+├── NairaTrace_v1_POS_colab.ipynb     # Colab notebook — POS model (copy-paste cells)
+├── NairaTrace_v1_online_colab.ipynb  # Colab notebook — online model
 │
-├── REMSIMER_POS_report.pdf      # 6-page technical report with results
+├── NairaTrace_v1_POS_report.pdf      # 6-page technical report with results
 │
 └── README.md
 ```
@@ -195,7 +203,7 @@ REMSIMER/
 
 ```bash
 pip install pandas numpy scikit-learn
-python remsimer_pos.py
+python nairatrace_v1_pos.py
 ```
 
 Update `DATA_PATH` in the file to point to your `fraudTrain.csv`.
@@ -203,7 +211,7 @@ Update `DATA_PATH` in the file to point to your `fraudTrain.csv`.
 ### Option B — Google Colab
 
 1. Open [colab.research.google.com](https://colab.research.google.com)
-2. Upload `REMSIMER_POS_colab.ipynb`
+2. Upload `NairaTrace_v1_POS_colab.ipynb`
 3. Run cells 1 to 19 in order
 4. Upload `fraudTrain.csv` when Cell 2 prompts
 
@@ -218,7 +226,7 @@ Download `fraudTrain.csv` from Kaggle:
 
 ## Per-Card Trend Detection
 
-REMSIMER tracks every card across its full transaction history and detects whether performance is worsening, improving, or stable.
+NairaTrace tracks every card across its full transaction history and detects whether performance is worsening, improving, or stable.
 
 ```
 Card         Txns  Appr%       Trend  Top halt entity

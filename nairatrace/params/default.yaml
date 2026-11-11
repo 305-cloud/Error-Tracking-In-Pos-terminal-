@@ -1,4 +1,4 @@
-# REMSIMER v2 default parameters.
+# NairaTrace v2 default parameters.
 # Every leaf is {value, prov}. prov is a citation, or a tag:
 #   [E] estimate (must be sensitivity-tested)   [S] snippet-level source   [C] company claim
 # Following PaySim practice, parameter files are published instead of data.

@@ -3,9 +3,9 @@ import pandas as pd
 import pytest
 import simpy
 
-from remsimer2 import codes, localise, params, sim
-from remsimer2.entities import DOWN, UP, Entity
-from remsimer2.world import Calendar
+from nairatrace import codes, localise, params, sim
+from nairatrace.entities import DOWN, UP, Entity
+from nairatrace.world import Calendar
 
 SMALL = {"simulation.days": 1, "simulation.daily_transactions": 4000}
 

@@ -1,4 +1,4 @@
-# REMSIMER — Full Results
+# NairaTrace v1 — Full Results
 
 ## Training run details
 - Dataset: kartik2112/fraud-detection (Sparkov)

@@ -1,5 +1,5 @@
 """
-REMSIMER — Online Payment State Machine
+NairaTrace — Online Payment State Machine
 Final model trained on real data:
   fraudTrain.csv  (Sparkov 1.29M rows) — CNP backbone + Issuer fraud label
   PaySim CSV      (6.36M rows)         — NIP (TRANSFER) + WALT (CASH_OUT)
@@ -246,7 +246,7 @@ class CardStateHistory:
 
 # ══════════════════════════════════════════════════════════════
 print("="*70)
-print("REMSIMER — Online Payment State Machine")
+print("NairaTrace — Online Payment State Machine")
 print("Training on: Sparkov (1.29M) + PaySim (6.36M)")
 print("="*70)
 

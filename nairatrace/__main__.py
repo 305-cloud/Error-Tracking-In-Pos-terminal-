@@ -1,4 +1,4 @@
-"""Command line: python -m remsimer2 {simulate,validate,localise} [options]."""
+"""Command line: python -m nairatrace {simulate,validate,localise} [options]."""
 
 import argparse
 
@@ -59,7 +59,7 @@ def cmd_localise(args):
 
 
 def main():
-    ap = argparse.ArgumentParser(prog="remsimer2")
+    ap = argparse.ArgumentParser(prog="nairatrace")
     sub = ap.add_subparsers(dest="cmd", required=True)
     for name, fn in (("simulate", cmd_simulate), ("validate", cmd_validate), ("localise", cmd_localise)):
         sp = sub.add_parser(name)
