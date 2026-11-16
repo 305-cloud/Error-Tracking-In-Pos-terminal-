@@ -67,6 +67,7 @@ class Transaction:
     resolved_at: float | None = None
     t_end: float | None = None
     truth: Result | None = None
+    panel: bool = False                           # part of a fixed study panel (no automatic retries)
     bene_draw: float | None = None                # beneficiary account condition, fixed across NE/FT
     account_selected: str | None = None           # card: DEFAULT | SAVINGS | CURRENT
     auth_code: str | None = None                  # card: issuer authorisation code on approval
@@ -75,6 +76,7 @@ class Transaction:
         card = self.route in ("A", "D")
         return {
             "trace_id": self.trace_id, "route": self.route, "customer_id": self.customer.cid,
+            "panel_person": getattr(self.customer, "panel_label", None) if self.panel else None,
             "agent_id": self.agent.aid if self.agent else None, "issuer": self.customer.issuer,
             "terminal_id": self.agent.terminal if self.route == "A" else None,
             "ptsp": self.agent.ptsp if self.route == "A" else None,
@@ -328,9 +330,10 @@ class Router:
                      "OK", "00", "LOCAL")
 
     # ----------------------------------------------------------------- routes
-    def start(self, route, customer, agent, amount, retry_no=0, retry_of=None):
+    def start(self, route, customer, agent, amount, retry_no=0, retry_of=None, panel=False):
         tx = Transaction(self.tr.new_trace_id(), route, customer, agent, amount, self.env.now,
                          retry_no, retry_of)
+        tx.panel = panel
         tx.stan = f"{int(tx.trace_id[2:]) % 1000000:06d}"
         tx.rrn = f"{self.w.calendar.date_at(self.env.now):%y%m%d}{tx.stan}"
         proc = {"A": self.route_a, "B": self.route_b, "C": self.route_c, "D": self.route_d}[route]
@@ -348,7 +351,7 @@ class Router:
                      res.status, res.code, res.space)
         self.tr.finish(tx)
         # A customer may retry after a technical failure or a correctable decline.
-        if not res.approved and tx.retry_no < self.p["demand"]["max_retries"]:
+        if not res.approved and not tx.panel and tx.retry_no < self.p["demand"]["max_retries"]:
             technical = res.fault and not res.fault.startswith(("BUSINESS", "POLICY"))
             if (technical or res.code in RETRYABLE_BUSINESS) and rng.random() < self.p["demand"]["retry_probability"]:
                 yield self.env.timeout(float(rng.uniform(20, 120)))

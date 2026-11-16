@@ -94,6 +94,7 @@ STATUS_NAMES = {"APPROVED": "Approved", "APPROVED_LATE": "Approved (delayed)", "
 def receipt_view(t):
     """The main table: what an agent's history or a receipt shows. Internal IDs and routing are left out."""
     r = pd.DataFrame({
+        "person": t.get("panel_person", pd.Series(index=t.index, dtype=object)),
         "datetime": t.datetime,
         "part_of_day": t.part_of_day,
         "month_end": t.is_month_end.map({True: "Yes", False: "No"}),

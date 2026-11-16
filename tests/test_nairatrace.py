@@ -151,3 +151,13 @@ def test_receipt_fields(run):
 def test_auth_code_only_when_approval_reached_terminal(run):
     t = run["transactions"]
     assert t[t.final_status != "APPROVED"].auth_code.isna().all()
+
+
+def test_panel_same_people_same_bank_different_terminals():
+    r = sim.run(seed=5, overrides={"simulation.days": 2, "simulation.daily_transactions": 2000},
+                panel={"people": 8, "per_person": 10, "bank": "GTBANK"})
+    p = r["transactions"][r["transactions"].panel_person.notna()]
+    assert len(p) == 80 and p.panel_person.nunique() == 8
+    assert (p.groupby("panel_person").size() == 10).all()
+    assert (p.issuer == "GTBANK").all()
+    assert (p.groupby("panel_person").terminal_id.nunique() == 10).all()
