@@ -13,7 +13,7 @@ Outcome category, from the response code:
   Debited but failed    the customer lost money for a failed transaction (overrides the above)
 
 Time of transaction:
-  datetime, part_of_day, day_type (Weekday / Weekend), is_month_end (25th-1st, salary days)
+  datetime, part_of_day, is_month_end (25th-1st, salary days)
 """
 
 import pandas as pd
@@ -72,7 +72,6 @@ def add_columns(transactions, start_date):
     dt = pd.Timestamp(start_date) + pd.to_timedelta(t.ts, unit="s")
     t["datetime"] = dt.dt.floor("s")
     t["part_of_day"] = dt.dt.hour.map(part_of_day)
-    t["day_type"] = dt.dt.dayofweek.map(lambda d: "Weekend" if d >= 5 else "Weekday")
     t["is_month_end"] = (dt.dt.day >= 25) | (dt.dt.day == 1)
     t["outcome_category"] = t.apply(outcome_category, axis=1)
     return t
