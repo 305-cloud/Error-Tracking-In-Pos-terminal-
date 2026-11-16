@@ -103,3 +103,20 @@ def test_card_codes_come_from_card_table(run):
     for space, table in codes.SPACES.items():
         used = set(s[(s.code_space == space) & s.code.notna()].code)
         assert used <= set(table), (space, used - set(table))
+
+
+def test_every_code_has_an_outcome_category():
+    from nairatrace import classify
+    for space, table in codes.SPACES.items():
+        for code in table:
+            assert code in classify.CATEGORY[space], (space, code)
+
+
+def test_classification_columns(run):
+    from nairatrace import classify
+    t = run["transactions"]
+    assert set(t.outcome_category) <= set(classify.CATEGORIES)
+    assert (t[t.customer_debited].outcome_category == "Debited but failed").all()
+    assert (t[t.final_status == "APPROVED"].outcome_category == "Successful").all()
+    assert set(t.part_of_day) <= {"Night", "Morning", "Afternoon", "Evening", "Late evening"}
+    assert t.datetime.dt.date.min().isoformat() == run["params"]["simulation"]["start_date"]

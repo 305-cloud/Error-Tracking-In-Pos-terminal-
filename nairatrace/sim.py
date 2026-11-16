@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import simpy
 
+from . import classify
 from . import params as P
 from .entities import rng_for
 from .routes import Router
@@ -89,7 +90,7 @@ def run(seed=1, overrides=None, params_path=P.DEFAULT_PATH, faults_enabled=True,
     for e in world.entities.values():
         e.close_episode()
     spans = pd.DataFrame(tracer.spans)
-    txs = pd.DataFrame(tracer.transaction_rows())
+    txs = classify.add_columns(pd.DataFrame(tracer.transaction_rows()), p["simulation"]["start_date"])
     truth = pd.DataFrame(tracer.ground_truth_rows())
     episodes = pd.DataFrame(world.episodes, columns=["episode_id", "entity", "role", "fault_type", "t_start", "t_end"])
     # Only transactions that started inside the horizon (the drain period has no arrivals anyway).
