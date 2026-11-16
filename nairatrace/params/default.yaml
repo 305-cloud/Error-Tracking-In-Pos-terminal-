@@ -46,6 +46,15 @@ population:
   principal_fi:
     value: {MONIEPOINT: "MONIEPOINT_MFB", OPAY: "OPAY_MFB", PALMPAY: "PALMPAY_MFB"}
     prov: "Principals hold national MFB licences (CBN, Jan 2026) [S]"
+  principal_ptsp:
+    value: {MONIEPOINT: "TEAMAPT", OPAY: "GLOBAL_ACCELEREX", PALMPAY: "ETOP"}
+    prov: "[E] illustrative: which PTSP deploys each principal's terminals was not confirmed (ETOP, Global Accelerex named as PTSPs [S])"
+  card_bin_prefix:
+    value: {VERVE: "506", MASTERCARD: "539", VISA: "418", AFRIGO: "565"}
+    prov: "[E] scheme-plausible BIN prefixes; real BINs are bank-specific"
+  terminal_default_account:
+    value: {DEFAULT: 0.93, SAVINGS: 0.05, CURRENT: 0.02}
+    prov: "[E] how agents leave the terminal's account-type setting; NIBSS names a wrong default as a failure cause [S]"
   ptsa_share:
     value: {NIBSS: 0.7, UPSL: 0.3}
     prov: "[E] two licensed PTSAs (NIBSS 2011, UPSL Apr 2024)"
@@ -112,7 +121,10 @@ issuer_behaviour:
   value:
     p_expired_card: 0.004
     p_invalid_card: 0.002
-    p_wrong_account_type: 0.02
+    p_customer_picks_account: 0.15
+    p_customer_picks_wrong: 0.03
+    p_duplicate_on_retry: 0.05
+    nip_p_name_mismatch: 0.001
     p_pin_wrong: 0.035
     p_fraud_block: 0.003
     p_not_permitted: 0.005

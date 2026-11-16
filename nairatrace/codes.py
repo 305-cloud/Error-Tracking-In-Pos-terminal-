@@ -67,6 +67,7 @@ NIP = _table([
     ("00", "Approved or completed successfully", "NIBSS", "none", "approved", "[GIST]"),
     ("06", "Dormant account", "BENEFICIARY_FI", "business", "declined", "[GIST]"),
     ("07", "Invalid account", "BENEFICIARY_FI", "business", "declined", "[GIST]"),
+    ("08", "Account name mismatch", "BENEFICIARY_FI", "business", "declined", "[GIST]"),
     ("09", "Request processing in progress", "NIBSS", "technical", "unknown", "[GIST]"),
     ("16", "Unknown bank code", "NIBSS", "technical", "declined", "[GIST]"),
     ("26", "Duplicate record", "NIBSS", "technical", "declined", "[GIST]"),

@@ -24,6 +24,7 @@ import numpy as np
 
 from . import codes
 from .entities import DOWN, DEGRADED, rng_for
+from .world import mask_pan
 
 
 @dataclass
@@ -67,11 +68,22 @@ class Transaction:
     t_end: float | None = None
     truth: Result | None = None
     bene_draw: float | None = None                # beneficiary account condition, fixed across NE/FT
+    account_selected: str | None = None           # card: DEFAULT | SAVINGS | CURRENT
+    auth_code: str | None = None                  # card: issuer authorisation code on approval
 
     def observable_row(self):
+        card = self.route in ("A", "D")
         return {
             "trace_id": self.trace_id, "route": self.route, "customer_id": self.customer.cid,
             "agent_id": self.agent.aid if self.agent else None, "issuer": self.customer.issuer,
+            "terminal_id": self.agent.terminal if self.route == "A" else None,
+            "ptsp": self.agent.ptsp if self.route == "A" else None,
+            "masked_pan": mask_pan(self.customer.pan) if card else None,
+            "card_bin": self.customer.pan[:6] if card else None,
+            "account_selected": self.account_selected,
+            "stan": self.stan, "rrn": self.rrn,
+            # The terminal only prints an auth code when the approval actually reached it.
+            "auth_code": self.auth_code if self.final_status == "APPROVED" else None,
             **{f"path_{k}": v for k, v in self.path.items()},
             "amount_kobo": int(round(self.amount * 100)), "ts": self.ts, "t_end": self.t_end,
             "retry_no": self.retry_no, "retry_of": self.retry_of,
@@ -187,6 +199,9 @@ class Router:
         if ent.role == "PTSA" and rng.random() < self.reg["terminal_outside_fence_share"]:
             # Terminal moved off its registered site: geo-fence rejects (CBN 70 m radius).
             return Result("58", space, "DECLINE", f"TERMINAL:{tx.agent.terminal}", "TERMINAL", "POLICY:GEOFENCE")
+        if ent.role == "SWITCH" and tx.retry_no > 0 and rng.random() < self.beh["p_duplicate_on_retry"]:
+            # The retry reaches the switch looking like the earlier attempt: rejected as a duplicate.
+            return self._r(ent, "94", space, "ERROR", "DUPLICATE")
         if ent.role == "ISSUER":
             return self._issuer_checks(tx, ent, space, rng)
         if ent.role == "SENDER_FI" and op == "FT":
@@ -215,6 +230,8 @@ class Router:
                 return self._r(ent, "06", space, "DECLINE", "BUSINESS:06")
             if u < b["nip_p_invalid_account"] + b["nip_p_dormant"] + b["nip_p_fraud"]:
                 return self._r(ent, "34", space, "DECLINE", "BUSINESS:34")
+            if u < b["nip_p_invalid_account"] + b["nip_p_dormant"] + b["nip_p_fraud"] + b["nip_p_name_mismatch"]:
+                return self._r(ent, "08", space, "DECLINE", "BUSINESS:08")
         return None
 
     def _issuer_checks(self, tx, ent, space, rng):
@@ -235,9 +252,12 @@ class Router:
                 c.pin_fails[day] = c.pin_fails.get(day, 0) + 1
                 return decline("55")
             c.pin_fails[day] = 0
-            if rng.random() < b["p_wrong_account_type"]:
-                # Agent left the terminal on the wrong default account type (NIBSS-named cause).
-                return decline("53" if c.account_type == "CURRENT" else "52")
+            # A wrong account type (often the terminal's default setting) is declined: NIBSS-named cause.
+            sel = tx.account_selected
+            if sel == "CURRENT" and c.account_type != "CURRENT":
+                return decline("52")
+            if sel == "SAVINGS" and c.account_type != "SAVINGS":
+                return decline("53")
         if tx.route == "D" and rng.random() < b["p_otp_fail"]:
             return decline("L10", "LOCAL")
         if c.fraud_flag:
@@ -261,6 +281,7 @@ class Router:
             c = tx.customer
             c.balance -= tx.amount
             tx.debited = True
+            tx.auth_code = f"{int(rng_for(self.seed, f'auth:{tx.trace_id}').integers(0, 1_000_000)):06d}"
             if tx.route == "A":
                 week = self.w.week_index(now)
                 c.spent_week[week] = c.spent_week.get(week, 0) + tx.amount
@@ -353,6 +374,13 @@ class Router:
         w, a, c, env = self.w, tx.agent, tx.customer, self.env
         tx.path = {"ptsa": a.ptsa, "switch": a.processor, "scheme": c.scheme, "principal": a.principal}
         yield env.timeout(float(rng.lognormal(np.log(1.5), 0.4)))   # card read + PIN entry
+        # Account type: the terminal's setting unless the customer picks one.
+        if rng.random() < self.beh["p_customer_picks_account"]:
+            wrong = rng.random() < self.beh["p_customer_picks_wrong"]
+            other = "CURRENT" if c.account_type == "SAVINGS" else "SAVINGS"
+            tx.account_selected = other if wrong else c.account_type
+        else:
+            tx.account_selected = a.default_account
         day = w.day_index(env.now)
         principal = w.e("PRINCIPAL", a.principal)
         if c.spent_today.get(day, 0) + tx.amount > self.reg["cashout_cap_customer_day"]:

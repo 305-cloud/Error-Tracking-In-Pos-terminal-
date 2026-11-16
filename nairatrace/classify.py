@@ -18,6 +18,8 @@ Time of transaction:
 
 import pandas as pd
 
+from . import codes
+
 CATEGORY = {
     "CARD": {
         "00": "Successful",
@@ -31,7 +33,7 @@ CATEGORY = {
     },
     "NIP": {
         "00": "Successful",
-        "07": "Customer issue", "51": "Customer issue",
+        "07": "Customer issue", "08": "Customer issue", "51": "Customer issue",
         "61": "Limit reached",
         "06": "Bank decline", "34": "Bank decline", "57": "Bank decline",
         "09": "Technical failure", "16": "Technical failure", "26": "Technical failure", "68": "Technical failure",
@@ -73,5 +75,46 @@ def add_columns(transactions, start_date):
     t["datetime"] = dt.dt.floor("s")
     t["part_of_day"] = dt.dt.hour.map(part_of_day)
     t["is_month_end"] = (dt.dt.day >= 25) | (dt.dt.day == 1)
+    t["response_message"] = t.apply(response_message, axis=1)
     t["outcome_category"] = t.apply(outcome_category, axis=1)
     return t
+
+
+def response_message(row):
+    if pd.isna(row["final_code"]):
+        return "No response"
+    return codes.SPACES[row["code_space"]][row["final_code"]].meaning
+
+
+ROUTE_NAMES = {"A": "POS card cash-out", "B": "Transfer cash-out", "C": "Transfer", "D": "Online card"}
+STATUS_NAMES = {"APPROVED": "Approved", "APPROVED_LATE": "Approved (delayed)", "DECLINED": "Declined",
+                "FAILED": "Failed", "DEBITED_FAILED": "Failed, customer debited", "PENDING": "Pending"}
+
+
+def receipt_view(t):
+    """The main table: what an agent's history or a receipt shows. Internal IDs and routing are left out."""
+    r = pd.DataFrame({
+        "datetime": t.datetime,
+        "part_of_day": t.part_of_day,
+        "month_end": t.is_month_end.map({True: "Yes", False: "No"}),
+        "channel": t.route.map(ROUTE_NAMES),
+        "agent_brand": t.get("path_principal", pd.Series(index=t.index, dtype=object)).str.title(),
+        "terminal_id": t.terminal_id,
+        "ptsp": t.ptsp,
+        "card_scheme": t.get("path_scheme", pd.Series(index=t.index, dtype=object)).str.title(),
+        "masked_pan": t.masked_pan,
+        "card_bank": t.issuer,
+        "account_type": t.account_selected.str.title(),
+        "amount_naira": t.amount_kobo / 100,
+        "stan": t.stan,
+        "rrn": t.rrn,
+        "auth_code": t.auth_code,
+        "status": t.final_status.map(STATUS_NAMES).fillna(t.final_status),
+        "response_code": t.final_code,
+        "response_message": t.response_message,
+        "category": t.outcome_category,
+        "customer_debited": t.customer_debited.map({True: "Yes", False: "No"}),
+        "refund": t.resolution,
+    })
+    return r
+

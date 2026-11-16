@@ -119,4 +119,35 @@ def test_classification_columns(run):
     assert (t[t.customer_debited].outcome_category == "Debited but failed").all()
     assert (t[t.final_status == "APPROVED"].outcome_category == "Successful").all()
     assert set(t.part_of_day) <= {"Night", "Morning", "Afternoon", "Evening", "Late evening"}
+    assert (t.response_message != "").all()
     assert t.datetime.dt.date.min().isoformat() == run["params"]["simulation"]["start_date"]
+
+
+def test_card_numbers_are_masked_and_luhn_valid(run):
+    from nairatrace import world
+    t = run["transactions"]
+    cards = t[t.route.isin(["A", "D"])]
+    assert cards.masked_pan.str.fullmatch(r"\d{6}\*{6}\d{4}").all()
+    assert not t.astype(str).apply(lambda col: col.str.fullmatch(r"\d{16}")).any().any()
+    rng = np.random.default_rng(0)
+    for _ in range(50):
+        pan = world._luhn_pan("506", rng)
+        digits = [int(d) for d in pan[::-1]]
+        assert sum(d if i % 2 == 0 else (d * 2 - 9 if d * 2 > 9 else d * 2) for i, d in enumerate(digits)) % 10 == 0
+
+
+def test_receipt_fields(run):
+    from nairatrace import classify
+    t = run["transactions"]
+    a = t[t.route == "A"]
+    assert a.terminal_id.str.fullmatch(r"2[A-Z]{3}[0-9A-F]{4}").all()
+    assert a.account_selected.isin(["DEFAULT", "SAVINGS", "CURRENT"]).all()
+    assert a[a.final_status == "APPROVED"].auth_code.notna().all()
+    assert a[a.final_code.isin(["52", "53"])].account_selected.isin(["SAVINGS", "CURRENT"]).all()
+    r = classify.receipt_view(t)
+    assert "customer_id" not in r and "path_switch" not in r
+
+
+def test_auth_code_only_when_approval_reached_terminal(run):
+    t = run["transactions"]
+    assert t[t.final_status != "APPROVED"].auth_code.isna().all()

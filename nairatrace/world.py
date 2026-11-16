@@ -34,6 +34,7 @@ class Customer:
     issuer: str
     scheme: str
     account_type: str        # SAVINGS | CURRENT
+    pan: str                 # full card number (never exported; only the masked form is)
     kyc_tier: int
     balance: float
     expired: bool
@@ -49,10 +50,25 @@ class Customer:
 class Agent:
     aid: str
     principal: str
-    terminal: str
+    terminal: str            # 8-character terminal ID
+    ptsp: str                # company that deployed and manages the terminal
+    default_account: str     # account-type setting left on the terminal: DEFAULT | SAVINGS | CURRENT
     ptsa: str
     processor: str
     cashout_today: dict = field(default_factory=dict)
+
+
+def _luhn_pan(prefix, rng, length=16):
+    """A Luhn-valid card number starting with the scheme prefix."""
+    body = prefix + "".join(str(d) for d in rng.integers(0, 10, length - len(prefix) - 1))
+    total = 0
+    for i, d in enumerate(int(x) for x in reversed(body)):
+        total += (d * 2 - 9 if d * 2 > 9 else d * 2) if i % 2 == 0 else d
+    return body + str((10 - total % 10) % 10)
+
+
+def mask_pan(pan):
+    return pan[:6] + "*" * (len(pan) - 10) + pan[-4:]
 
 
 def _choice(rng, weights: dict):
@@ -104,11 +120,13 @@ class World:
         pop = self.p["population"]
         b = pop["balance_naira"]
         issuer = _choice(rng, pop["issuer_share"])
+        scheme = _choice(rng, pop["scheme_share"])
         return Customer(
             cid=f"C{i:06d}",
             issuer=issuer,
             fi=issuer,
-            scheme=_choice(rng, pop["scheme_share"]),
+            scheme=scheme,
+            pan=_luhn_pan(pop["card_bin_prefix"][scheme], rng),
             account_type="SAVINGS" if rng.random() < 0.8 else "CURRENT",
             kyc_tier=int(_choice(rng, {int(k): v for k, v in pop["kyc_tier_share"].items()})),
             balance=float(rng.lognormal(np.log(b["median"]), b["sigma"])),
@@ -120,10 +138,13 @@ class World:
     def _make_agent(self, i, rng):
         pop = self.p["population"]
         principal = _choice(rng, pop["principals"])
+        ptsp = pop["principal_ptsp"][principal]
         return Agent(
             aid=f"A{i:05d}",
             principal=principal,
-            terminal=f"T{i:05d}",
+            terminal="2" + ptsp[:3] + "".join(rng.choice(list("0123456789ABCDEF"), 4)),
+            ptsp=ptsp,
+            default_account=_choice(rng, pop["terminal_default_account"]),
             ptsa=_choice(rng, pop["ptsa_share"]),
             processor=pop["principal_processor"][principal],
         )

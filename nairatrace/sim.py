@@ -104,6 +104,7 @@ def write(result, out_dir):
     (out / "hidden").mkdir(parents=True, exist_ok=True)
     result["spans"].to_parquet(out / "observable" / "spans.parquet", index=False)
     result["transactions"].to_parquet(out / "observable" / "transactions.parquet", index=False)
+    classify.receipt_view(result["transactions"]).to_csv(out / "observable" / "receipts.csv", index=False)
     result["ground_truth"].to_parquet(out / "hidden" / "ground_truth.parquet", index=False)
     result["episodes"].to_parquet(out / "hidden" / "episodes.parquet", index=False)
     with open(out / "provenance.json", "w") as f:

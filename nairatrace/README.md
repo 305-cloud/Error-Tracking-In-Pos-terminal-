@@ -36,6 +36,7 @@ The name: NairaTrace traces where a naira payment stops, and why. The project wa
 ```
 runs/<name>/observable/spans.parquet         one row per hop per message (OpenTelemetry-style)
 runs/<name>/observable/transactions.parquet  one row per attempt, as the customer sees it
+runs/<name>/observable/receipts.csv          the main table: receipt/agent-history columns, no internal IDs
 runs/<name>/hidden/ground_truth.parquet      injected root cause per failed attempt
 runs/<name>/hidden/episodes.parquet          every fault episode
 runs/<name>/provenance.json                  where every parameter came from; [E] estimates listed
