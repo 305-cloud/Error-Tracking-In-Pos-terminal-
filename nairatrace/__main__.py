@@ -66,7 +66,7 @@ def main():
         sp.add_argument("--seed", type=int, default=1)
         sp.add_argument("--days", type=int)
         sp.add_argument("--volume", type=int, help="transactions per day")
-        sp.add_argument("--scenario", default="default", choices=["default", "stress"])
+        sp.add_argument("--scenario", default="default", choices=["default", "stress", "core"])
         if name == "simulate":
             sp.add_argument("--out", default="runs/latest")
         sp.set_defaults(fn=fn)

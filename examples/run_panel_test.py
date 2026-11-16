@@ -26,6 +26,8 @@ TRAIN_RUNS = [
     {"seed": 1, "overrides": {"simulation.days": 4, "simulation.daily_transactions": 20000}},
     {"seed": 2, "overrides": {**scenarios.overrides("stress"), "simulation.days": 3, "simulation.daily_transactions": 20000}},
     {"seed": 3, "overrides": {**scenarios.overrides("stress"), "simulation.days": 3, "simulation.daily_transactions": 20000}},
+    # Rare network-side outages (scheme, switch, PTSA, NIBSS) made common, so the model can learn them.
+    {"seed": 4, "overrides": {**scenarios.overrides("core"), "simulation.days": 3, "simulation.daily_transactions": 20000}},
 ]
 
 ROLE_OF_OWNER = {"ISSUER": "ISSUER", "SWITCH": "SWITCH", "ACQUIRER": "ACQUIRER", "PTSA": "TERMINAL",
@@ -33,7 +35,7 @@ ROLE_OF_OWNER = {"ISSUER": "ISSUER", "SWITCH": "SWITCH", "ACQUIRER": "ACQUIRER",
 
 
 def main():
-    print("Training on", len(TRAIN_RUNS), "separate simulated worlds (seeds 1-3), never the panel world (seed 8)...")
+    print("Training on", len(TRAIN_RUNS), "separate simulated worlds (seeds 1-4), never the panel world (seed 8)...")
     train = pd.concat([localise.dataset(sim.run(**cfg)) for cfg in TRAIN_RUNS])
     print(f"  {len(train):,} technical failures to learn from\n")
     model = localise.GBMLocaliser().fit(train)
@@ -48,7 +50,7 @@ def main():
 
     proba = model.predict_proba(tech) if len(tech) else pd.DataFrame()
     tech = tech.assign(
-        model_pred=proba.idxmax(axis=1), model_p=proba.max(axis=1),
+        model_pred=proba.idxmax(axis=1), model_p=proba.max(axis=1).round(2),
         rule_pred=tech.apply(localise.rule_last_responding_hop, axis=1))
     # The "code says" view for business declines: the owner of the code on the receipt.
     business = business.assign(code_pred=business.apply(

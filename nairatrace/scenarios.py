@@ -18,4 +18,13 @@ def overrides(name, base_path=None):
         for role, cfg in p["faults"]["by_role"].items():
             by_role[role] = {**cfg, "mtbf_h": cfg["mtbf_h"] / 6, "p_down": 0.3}
         return {"faults.by_role": by_role, "faults.degraded_latency_x": 60.0}
+    if name == "core":
+        # Training-only: makes the rare national/network hops (PTSA, switch, scheme, NIBSS,
+        # gateway) fail often, so the localiser sees enough of their outages to learn them.
+        p, _ = load() if base_path is None else load(base_path)
+        by_role = {}
+        for role, cfg in p["faults"]["by_role"].items():
+            rare = role in ("PTSA", "SWITCH", "SCHEME", "NIBSS", "GATEWAY", "PRINCIPAL")
+            by_role[role] = {**cfg, "mtbf_h": cfg["mtbf_h"] / (40 if rare else 3), "p_down": 0.4}
+        return {"faults.by_role": by_role, "faults.degraded_latency_x": 60.0}
     raise ValueError(f"unknown scenario {name!r}")

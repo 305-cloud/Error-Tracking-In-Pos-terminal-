@@ -17,6 +17,7 @@ Models:
 
 import numpy as np
 import pandas as pd
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score
 
@@ -108,13 +109,16 @@ def rule_last_responding_hop(row):
     return last
 
 
-CAT_COLS = ["route", "final_code", "final_status", "req_status"] + \
+CAT_COLS = ["route", "final_code", "final_status", "req_status", "rule_pred"] + \
            [f"status_{r}" for r in ROLES] + [f"code_{r}" for r in ROLES]
 NUM_COLS = ["req_latency", "hour", "retry_no"] + [f"lat_{r}" for r in ROLES] + \
            [f"n_{r}" for r in ROLES] + [f"win_{k}" for k in WINDOW_KEYS]
 
 
 def _matrix(df, categories=None):
+    if "rule_pred" not in df:
+        # The rule's verdict is a feature: the model learns when to trust it (e.g. scheme outages).
+        df = df.assign(rule_pred=df.apply(rule_last_responding_hop, axis=1))
     M = df[CAT_COLS + NUM_COLS].copy()
     categories = categories or {c: sorted(M[c].astype(str).unique()) for c in CAT_COLS}
     for c in CAT_COLS:
@@ -123,18 +127,33 @@ def _matrix(df, categories=None):
 
 
 class GBMLocaliser:
-    def fit(self, train):
+    def fit(self, train, calibrate=True):
         M, self.categories = _matrix(train)
-        self.model = HistGradientBoostingClassifier(
+        base = HistGradientBoostingClassifier(
             categorical_features=[M.columns.get_loc(c) for c in CAT_COLS],
             max_iter=300, learning_rate=0.08, random_state=0,
             class_weight="balanced")   # rare roles (PTSA, SCHEME, PRINCIPAL) would otherwise be ignored
+        # Calibration on held-out folds, so a stated 90% is right about 90% of the time.
+        self.model = CalibratedClassifierCV(base, method="isotonic", cv=3) if calibrate else base
         self.model.fit(M, train.root_role)
         return self
 
     def predict_proba(self, df):
         M, _ = _matrix(df, self.categories)
         return pd.DataFrame(self.model.predict_proba(M), index=df.index, columns=self.model.classes_)
+
+
+def calibration_error(y, proba, bins=10):
+    """Expected calibration error: average gap between stated confidence and actual accuracy."""
+    conf = proba.max(axis=1).to_numpy()
+    hit = (proba.idxmax(axis=1).to_numpy() == np.asarray(y))
+    edges = np.linspace(0, 1, bins + 1)
+    err = 0.0
+    for lo, hi in zip(edges[:-1], edges[1:]):
+        m = (conf > lo) & (conf <= hi)
+        if m.any():
+            err += m.mean() * abs(conf[m].mean() - hit[m].mean())
+    return err
 
 
 def evaluate(test, proba=None, rule_pred=None):
@@ -151,7 +170,8 @@ def evaluate(test, proba=None, rule_pred=None):
         top3 = cls[ranked[:, :3]]
         out["gbm"] = {"AC@1": accuracy_score(y, top1),
                       "AC@3": float(np.mean([yy in row for yy, row in zip(y, top3)])),
-                      "macro_F1": f1_score(y, top1, average="macro", zero_division=0)}
+                      "macro_F1": f1_score(y, top1, average="macro", zero_division=0),
+                      "calib_err": calibration_error(y, proba)}
     majority = y.value_counts().index[0]
     out["majority"] = {"AC@1": float((y == majority).mean()), "AC@3": np.nan,
                        "macro_F1": f1_score(y, [majority] * len(y), average="macro", zero_division=0)}
@@ -181,5 +201,7 @@ def explain(row, proba_row, top=2):
         elif r in ROLES:
             evidence.append(f"no {r} span")
     alt = ", ".join(f"{k} p={v:.2f}" for k, v in best.iloc[1:].items())
+    rule = rule_last_responding_hop(row)
+    disputed = f"; DISPUTED: rule says {rule}" if rule != best.index[0] else ""
     return (f"root={best.index[0]} p={best.iloc[0]:.2f}; evidence: " + "; ".join(evidence)
-            + (f"; alternative {alt}" if alt else ""))
+            + (f"; alternative {alt}" if alt else "") + disputed)

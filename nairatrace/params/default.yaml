@@ -112,7 +112,7 @@ faults:
   degraded_latency_x: {value: 25.0, prov: "[E]"}
   degraded_error_p: {value: 0.15, prov: "[E] share of requests a degraded entity answers with 96"}
   peak_fault_multiplier: {value: 2.5, prov: "[E] x2-3 failure rate on month-end and December"}
-  terminal_network_loss_p: {value: 0.02, prov: "[E] GPRS/SIM loss per attempt; no data found"}
+  terminal_network_loss_p: {value: 0.005, prov: "[E] lowered from 0.02 after local user observation (Nov 2026) that Nigerian POS terminals have improved; no published data; confirm in agent survey"}
   terminal_loss_after_debit_share: {value: 0.35, prov: "[E] share of network losses that happen after the issuer debited"}
   lost_webhook_p: {value: 0.004, prov: "[E] gateway webhook lost: debited, merchant gives no value"}
 
