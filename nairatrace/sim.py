@@ -78,17 +78,27 @@ def income(env, world, p, seed):
 
 
 def panel_process(env, world, router, p, seed, people=8, per_person=10, bank="GTBANK"):
-    """A fixed study panel: the same people, all at one bank, each cashing out at a
+    """A fixed study panel: the same people, each cashing out at a
     different agent terminal every time. Runs alongside normal traffic, so outages and
     busy periods hit the panel as they would anyone else. Panel attempts are not retried
-    automatically, so each person has exactly `per_person` transactions."""
+    automatically, so each person has exactly `per_person` transactions.
+
+    bank: one bank name for everyone, a list with one bank per person, or "mixed"
+    for a different bank per person (drawn from the issuer list without repeats)."""
     rng = rng_for(seed, "panel")
     horizon = p["simulation"]["days"] * DAY
     picks = rng.choice(len(world.customers), people, replace=False)
+    if bank == "mixed":
+        issuers = list(p["population"]["issuer_share"])
+        banks = [issuers[i] for i in rng.choice(len(issuers), people, replace=people > len(issuers))]
+    elif isinstance(bank, (list, tuple)):
+        banks = list(bank)
+    else:
+        banks = [bank] * people
     schedule = []
     for n, idx in enumerate(picks, 1):
         c = world.customers[idx]
-        c.issuer = c.fi = bank
+        c.issuer = c.fi = banks[n - 1]
         c.panel_label = f"Person {n}"
         # Panel members make 10 cash-outs, so they need a working balance, not a near-empty account [E].
         c.balance = max(c.balance, float(rng.lognormal(np.log(120_000), 0.6)))

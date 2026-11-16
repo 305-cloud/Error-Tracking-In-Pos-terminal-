@@ -161,3 +161,11 @@ def test_panel_same_people_same_bank_different_terminals():
     assert (p.groupby("panel_person").size() == 10).all()
     assert (p.issuer == "GTBANK").all()
     assert (p.groupby("panel_person").terminal_id.nunique() == 10).all()
+
+
+def test_panel_mixed_banks():
+    r = sim.run(seed=5, overrides={"simulation.days": 1, "simulation.daily_transactions": 1000},
+                panel={"people": 8, "per_person": 3, "bank": "mixed"})
+    p = r["transactions"][r["transactions"].panel_person.notna()]
+    assert p.groupby("panel_person").issuer.nunique().eq(1).all()
+    assert p.drop_duplicates("panel_person").issuer.nunique() == 8
